@@ -12,7 +12,7 @@ import { Loader2, AlertCircle, CheckCircle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 
-const API_URL = "http://localhost:5000"; // or your Flask backend URL
+const API_URL = process.env.REACT_APP_API_URL;
 
 export function PlagiarismChecker() {
   const [file, setFile] = useState(null)
