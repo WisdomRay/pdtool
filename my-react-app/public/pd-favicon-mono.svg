@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Monochrome, theme-adaptive mark: uses currentColor -->
+  <g stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <circle cx="28" cy="28" r="10"/>
+    <line x1="35" y1="35" x2="46" y2="46"/>
+    <path d="M23 28 l4 4 l7 -7"/>
+  </g>
+</svg>
