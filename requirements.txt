@@ -1,0 +1,9 @@
+flask
+flask-cors
+scikit-learn
+numpy
+python-docx
+PyPDF2
+mysql-connector-python
+pymupdf
+mammoth
