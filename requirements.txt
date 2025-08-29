@@ -9,3 +9,4 @@ pymupdf
 mammoth
 python-dotenv
 gunicorn
+psycopg2-binary

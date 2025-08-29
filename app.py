@@ -7,7 +7,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import docx
 from PyPDF2 import PdfReader
-import mysql.connector
+# import mysql.connector
 import traceback
 import logging
 from logging.handlers import RotatingFileHandler
@@ -17,6 +17,8 @@ import mammoth
 import re
 import os
 from dotenv import load_dotenv
+import psycopg2
+from psycopg2 import pool
 
 load_dotenv()
 
@@ -50,19 +52,33 @@ handler = RotatingFileHandler('app.log', maxBytes=1000000, backupCount=1)
 logger.addHandler(handler)
 
 # 🔑 Database config from env
-config = {
-    'user': os.environ.get("DB_USER", "root"),
-    'password': os.environ.get("DB_PASSWORD", ""),
-    'host': os.environ.get("DB_HOST", "127.0.0.1"),
-    'database': os.environ.get("DB_NAME", "pdtool"),
-    'port': int(os.environ.get("DB_PORT", 3306)),
-    'raise_on_warnings': True
-}
+# config = {
+#     'user': os.environ.get("DB_USER", "root"),
+#     'password': os.environ.get("DB_PASSWORD", ""),
+#     'host': os.environ.get("DB_HOST", "127.0.0.1"),
+#     'database': os.environ.get("DB_NAME", "pdtool"),
+#     'port': int(os.environ.get("DB_PORT", 3306)),
+#     'raise_on_warnings': True
+# }
 
 # Database connection pool
-db_pool = mysql.connector.pooling.MySQLConnectionPool(
-    pool_name="pdtool_pool",
-    pool_size=5,
+# db_pool = mysql.connector.pooling.MySQLConnectionPool(
+#     pool_name="pdtool_pool",
+#     pool_size=5,
+#     **config
+# )
+
+config = {
+    'host': os.environ.get('DB_HOST'),
+    'database': os.environ.get('DB_NAME'),
+    'user': os.environ.get('DB_USER'),
+    'password': os.environ.get('DB_PASSWORD'),
+    'port': os.environ.get('DB_PORT', 5432)  # PostgreSQL default port
+}
+
+db_pool = psycopg2.pool.SimpleConnectionPool(
+    minconn=1,
+    maxconn=5,
     **config
 )
 
