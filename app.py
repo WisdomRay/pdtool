@@ -15,22 +15,47 @@ import io
 import fitz  # PyMuPDF
 import mammoth
 import re
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'
-CORS(app, supports_credentials=True)
+
+# 🔑 Use env var for secret key
+app.secret_key = os.environ.get("SECRET_KEY", "fallback_secret")
+
+# Setup CORS with frontend origin from env
+frontend_origin = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+CORS(app, 
+    resources={
+        r"/documents": {
+            "origins": frontend_origin,
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True
+        },
+        r"/documents/*": {
+            "origins": frontend_origin,
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True
+        }
+    }
+)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 handler = RotatingFileHandler('app.log', maxBytes=1000000, backupCount=1)
 logger.addHandler(handler)
 
+# 🔑 Database config from env
 config = {
-    'user': 'root',
-    'password': '',
-    'host': '127.0.0.1',
-    'database': 'pdtool',
-    'port': 3306,
+    'user': os.environ.get("DB_USER", "root"),
+    'password': os.environ.get("DB_PASSWORD", ""),
+    'host': os.environ.get("DB_HOST", "127.0.0.1"),
+    'database': os.environ.get("DB_NAME", "pdtool"),
+    'port': int(os.environ.get("DB_PORT", 3306)),
     'raise_on_warnings': True
 }
 
@@ -41,22 +66,6 @@ db_pool = mysql.connector.pooling.MySQLConnectionPool(
     **config
 )
 
-CORS(app, 
-    resources={
-        r"/documents": {
-            "origins": "http://localhost:5173",
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"],
-            "supports_credentials": True
-        },
-        r"/documents/*": {
-            "origins": "http://localhost:5173",
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"],
-            "supports_credentials": True
-        }
-    }
-)
 def get_db_connection():
     return db_pool.get_connection()
 
@@ -64,7 +73,6 @@ def normalize_text(text):
     """Normalize text for comparison by lowercasing and removing special characters"""
     if not text:
         return ""
-    # Remove special characters and normalize whitespace
     text = re.sub(r'[^\w\s]', '', text.lower())
     return ' '.join(text.split())
 
