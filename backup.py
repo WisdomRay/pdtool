@@ -18,20 +18,28 @@ import re
 import os
 from dotenv import load_dotenv
 
+# import psycopg2
+# from psycopg2 import pool
+
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app)  
 
 # 🔑 Use env var for secret key
 app.secret_key = os.environ.get("SECRET_KEY", "fallback_secret")
 
-# Setup CORS with proper configuration - SIMPLIFIED
+# Setup CORS with frontend origin from env
 frontend_origins = os.environ.get("FRONTEND_URLS", "http://localhost:5173").split(",")
-CORS(app,
-    origins=frontend_origins,
-    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
-    supports_credentials=True
+CORS(app, 
+    resources={
+        r"/documents": {
+            "origins": frontend_origins,
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True
+        }
+    }
 )
 
 logger = logging.getLogger(__name__)
@@ -55,6 +63,21 @@ db_pool = mysql.connector.pooling.MySQLConnectionPool(
     pool_size=5,
     **config
 )
+
+# config = {
+#     'host': os.environ.get('DB_HOST'),
+#     'database': os.environ.get('DB_NAME'),
+#     'user': os.environ.get('DB_USER'),
+#     'password': os.environ.get('DB_PASSWORD'),
+#     'port': os.environ.get('DB_PORT', 5432)  # PostgreSQL default port
+# }
+
+
+# db_pool = psycopg2.pool.SimpleConnectionPool(
+#     minconn=1,
+#     maxconn=5,
+#     **config
+# )
 
 def get_db_connection():
     return db_pool.get_connection()
@@ -143,11 +166,8 @@ def find_matching_text(query_text, source_text, min_match_length=10):
     return matches
 
 
-@app.route('/admin_login', methods=['POST', 'OPTIONS'])
+@app.route('/admin_login', methods=['POST'])
 def admin_login():
-    if request.method == 'OPTIONS':
-        return '', 200
-    
     data = request.json
     username = data.get('username')
     password = data.get('password')
@@ -216,11 +236,8 @@ def delete_document(doc_id):
         if conn:
             conn.close()
 
-@app.route('/check_plagiarism', methods=['POST', 'OPTIONS'])
+@app.route('/check_plagiarism', methods=['POST'])
 def check_plagiarism_route():
-    if request.method == 'OPTIONS':
-        return '', 200
-    
     try:
         if 'file' not in request.files:
             logger.warning("No file uploaded.")
@@ -334,6 +351,8 @@ def check_plagiarism_route():
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
         return jsonify({"error": "Server error", "details": str(e)}), 500
+
+# ... [Keep your other routes unchanged] ...
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
