@@ -11,8 +11,10 @@ import { HighlightedText } from "./highlighted-text"
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
+// Check if the environment variable is defined
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-const API_URL = process.env.REACT_APP_API_URL;
+console.log("API_URL:", API_URL); // Debug log
 
 export function PlagiarismChecker() {
   const [file, setFile] = useState(null)
@@ -31,55 +33,59 @@ export function PlagiarismChecker() {
   }
 
   const handleCheck = async () => {
-  if (!file) {
-    setError("Please upload a file first");
-    return;
-  }
-
-  setLoading(true);
-  setError(null);
-
-  try {
-    const formData = new FormData();
-    formData.append("file", file);
-    
-
-
-    const response = await axios.post(`${API_URL}/check_plagiarism`, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-      timeout: 10000 // 10 second timeout
-    });
-
-    if (response.data.error) {
-      setError(response.data.error);
-    } else {
-      setResult(response.data);
-      setActiveTab("results");
+    if (!file) {
+      setError("Please upload a file first");
+      return;
     }
-  } catch (err) {
-    let errorMessage = "Failed to check plagiarism";
-    
-    if (err.response) {
-      // Backend returned an error
-      errorMessage = err.response.data.error || errorMessage;
-      if (err.response.data.details) {
-        errorMessage += `: ${err.response.data.details}`;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Use the properly constructed API URL
+      const apiUrl = `${API_URL}/check_plagiarism`;
+      console.log("Making request to:", apiUrl); // Debug log
+
+      const response = await axios.post(apiUrl, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        withCredentials: true,
+        timeout: 10000
+      });
+
+      if (response.data.error) {
+        setError(response.data.error);
+      } else {
+        setResult(response.data);
+        setActiveTab("results");
       }
-    } else if (err.code === "ECONNABORTED") {
-      errorMessage = "Request timed out. Please try again.";
-    } else if (err.message === "Network Error") {
-      errorMessage = "Cannot connect to server. Please check your connection.";
+    } catch (err) {
+      let errorMessage = "Failed to check plagiarism";
+      
+      if (err.response) {
+        // Backend returned an error
+        errorMessage = err.response.data.error || errorMessage;
+        if (err.response.data.details) {
+          errorMessage += `: ${err.response.data.details}`;
+        }
+      } else if (err.code === "ECONNABORTED") {
+        errorMessage = "Request timed out. Please try again.";
+      } else if (err.message === "Network Error") {
+        errorMessage = "Cannot connect to server. Please check your connection.";
+      } else if (err.request) {
+        errorMessage = "No response from server. Please check if the server is running.";
+      }
+
+      setError(errorMessage);
+      console.error("Plagiarism check error:", err);
+    } finally {
+      setLoading(false);
     }
-
-    setError(errorMessage);
-    console.error("Plagiarism check error:", err);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   const getSeverityColor = (score) => {
     if (score < 0.3) return "bg-green-500"
@@ -145,7 +151,6 @@ export function PlagiarismChecker() {
             )}
           </TabsContent>
 
-          {/* In the results TabsContent section */}
           <TabsContent value="results">
             {result && (
               <div className="space-y-6">
