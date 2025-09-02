@@ -10,6 +10,10 @@ import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
+// Debug environment variable at the top level
+console.log("API URL:", import.meta.env.VITE_API_URL);
+console.log("Login URL:", `${import.meta.env.VITE_API_URL}/admin_login`);
+
 export function AdminLogin({ onLogin }) {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
@@ -28,10 +32,10 @@ export function AdminLogin({ onLogin }) {
 
     try {
       const res = await axios.post(
-        "http://localhost:5000/admin_login",
+        `${import.meta.env.VITE_API_URL}/admin_login`,
         { username, password },
-        { withCredentials: true },
-      )
+        { withCredentials: true }
+      );
 
       if (res.data.message) {
         onLogin()
