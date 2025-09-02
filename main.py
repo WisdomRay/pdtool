@@ -27,8 +27,15 @@ app.secret_key = os.environ.get("SECRET_KEY", "fallback_secret")
 
 # Setup CORS with proper configuration
 frontend_origins = os.environ.get("FRONTEND_URLS", "http://localhost:5173,https://pdtool.vercel.app").split(",")
+# CORS(app,
+#     origins=frontend_origins,
+#     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+#     allow_headers=["Content-Type", "Authorization"],
+#     supports_credentials=True
+# )
+# TEMPORARY - Allow all origins for testing
 CORS(app,
-    origins=frontend_origins,
+    origins=["*"],  # Allow all origins temporarily
     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
     supports_credentials=True
@@ -78,10 +85,15 @@ def get_db_config():
 def get_db_connection():
     try:
         config = get_db_config()
+        print("Database config:", config)  # Debug log (remove sensitive data later)
+
         conn = mysql.connector.connect(**config)
+        print("Database connected successfully")  # Debug log
+
         return conn
     except mysql.connector.Error as err:
         logger.error(f"Database connection error: {err}")
+        print(f"Database connection failed: {err}")  # Debug log
         raise
 
 def normalize_text(text):
@@ -246,7 +258,20 @@ def check_plagiarism_route():
     if request.method == 'OPTIONS':
         return '', 200
     
+    
+    
     try:
+        
+        print("Received plagiarism check request")  # Debug log
+        print("Headers:", dict(request.headers))    # Debug log
+        
+        if 'file' not in request.files:
+            logger.warning("No file uploaded.")
+            return jsonify({"error": "No file part in the request"}), 400
+
+        file = request.files['file']
+        print("File received:", file.filename)  # Debug log
+
         if 'file' not in request.files:
             logger.warning("No file uploaded.")
             return jsonify({"error": "No file part in the request"}), 400
@@ -262,21 +287,29 @@ def check_plagiarism_route():
         try:
             # File reading logic
             if file_type == 'docx':
+                print("Processing DOCX file")  # Debug log
+
                 docx_bytes = file.read()
                 with io.BytesIO(docx_bytes) as docx_io:
                     result = mammoth.extract_raw_text(docx_io)
                     text = result.value
             elif file_type == 'pdf':
+                print("Processing PDF file")  # Debug log
+
                 pdf_bytes = file.read()
                 with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
                     text = ""
                     for page in doc:
                         text += page.get_text()
             elif file_type == 'txt':
+                print("Processing TXT file")  # Debug log
+
                 text = file.read().decode('utf-8')
             else:
                 logger.warning("Unsupported file type.")
                 return jsonify({"error": "Unsupported file type"}), 400
+                
+            print("File processed successfully, length:", len(text))  # Debug log
 
             logger.info("File read successfully.")
             
