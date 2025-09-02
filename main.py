@@ -26,13 +26,25 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "fallback_secret")
 
 # Setup CORS with proper configuration
-frontend_origins = os.environ.get("FRONTEND_URLS", "http://localhost:5173,https://pdtool.vercel.app/").split(",")
+frontend_origins = os.environ.get("FRONTEND_URLS", "http://localhost:5173,https://pdtool.vercel.app").split(",")
 CORS(app,
     origins=frontend_origins,
     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
     supports_credentials=True
 )
+
+# Add explicit CORS headers for better compatibility
+@app.after_request
+def after_request(response):
+    # Add CORS headers to all responses
+    origin = request.headers.get('Origin')
+    if origin and origin in frontend_origins:
+        response.headers.add('Access-Control-Allow-Origin', origin)
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
