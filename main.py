@@ -26,7 +26,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "fallback_secret")
 
 # Setup CORS with proper configuration
-frontend_origins = os.environ.get("FRONTEND_URLS", "http://localhost:5173").split(",")
+frontend_origins = os.environ.get("FRONTEND_URLS", "http://localhost:5173,https://pdtool.vercel.app/").split(",")
 CORS(app,
     origins=frontend_origins,
     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
