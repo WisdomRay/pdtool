@@ -59,18 +59,49 @@ handler = RotatingFileHandler('app.log', maxBytes=1000000, backupCount=1)
 logger.addHandler(handler)
 
 # 🔑 Database configuration for both Railway and local development
+# def get_db_config():
+#     # Prioritize Railway's MySQL environment variables
+#     if os.environ.get('MYSQLHOST'):
+#         return {
+#             'user': os.environ.get('MYSQLUSER', 'root'),
+#             'password': os.environ.get('MYSQLPASSWORD', 'jWmVkiiGFuPlOxsvcSKmRZHeDrdHBmsX'),
+#             'host': os.environ.get('MYSQLHOST', 'localhost'),
+#             'database': os.environ.get('MYSQLDATABASE', 'pdtool'),
+#             'port': int(os.environ.get('MYSQLPORT', 3306)),
+#             'raise_on_warnings': True
+#         }
+#     else:
+#         # Fallback to local development
+#         return {
+#             'user': os.environ.get("DB_USER", "root"),
+#             'password': os.environ.get("DB_PASSWORD", "299QC]tT((cn/S.!"),
+#             'host': os.environ.get("DB_HOST", "127.0.0.1"),
+#             'database': os.environ.get("DB_NAME", "pdtool"),
+#             'port': int(os.environ.get("DB_PORT", 3306)),
+#             'raise_on_warnings': True
+#         }
+
 def get_db_config():
+    print("Environment variables check:")  # Debug log
+    print("MYSQLHOST:", os.environ.get('MYSQLHOST'))
+    print("MYSQLUSER:", os.environ.get('MYSQLUSER'))
+    print("MYSQLDATABASE:", os.environ.get('MYSQLDATABASE'))
+    
     # Prioritize Railway's MySQL environment variables
     if os.environ.get('MYSQLHOST'):
-        return {
-            'user': os.environ.get('MYSQLUSER', 'root'),
-            'password': os.environ.get('MYSQLPASSWORD', 'jWmVkiiGFuPlOxsvcSKmRZHeDrdHBmsX'),
-            'host': os.environ.get('MYSQLHOST', 'localhost'),
-            'database': os.environ.get('MYSQLDATABASE', 'pdtool'),
+        print("Using Railway MySQL configuration")  # Debug log
+        config = {
+            'user': os.environ.get('MYSQLUSER'),
+            'password': os.environ.get('MYSQLPASSWORD'),
+            'host': os.environ.get('MYSQLHOST'),
+            'database': os.environ.get('MYSQLDATABASE'),
             'port': int(os.environ.get('MYSQLPORT', 3306)),
             'raise_on_warnings': True
         }
+        print("Railway config:", {k: v for k, v in config.items() if k != 'password'})  # Debug log (hide password)
+        return config
     else:
+        print("Using local development configuration")  # Debug log
         # Fallback to local development
         return {
             'user': os.environ.get("DB_USER", "root"),
