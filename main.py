@@ -25,7 +25,7 @@ app = Flask(__name__)
 # 🔑 Use env var for secret key
 app.secret_key = os.environ.get("SECRET_KEY", "fallback_secret")
 
-# Setup CORS with proper configuration - SIMPLIFIED
+# Setup CORS with proper configuration
 frontend_origins = os.environ.get("FRONTEND_URLS", "http://localhost:5173").split(",")
 CORS(app,
     origins=frontend_origins,
@@ -39,25 +39,38 @@ logger.setLevel(logging.DEBUG)
 handler = RotatingFileHandler('app.log', maxBytes=1000000, backupCount=1)
 logger.addHandler(handler)
 
-# 🔑 Database config from env
-config = {
-    'user': os.environ.get("DB_USER", "root"),
-    'password': os.environ.get("DB_PASSWORD", "299QC]tT((cn/S.!"),
-    'host': os.environ.get("DB_HOST", "127.0.0.1"),
-    'database': os.environ.get("DB_NAME", "pdtool"),
-    'port': int(os.environ.get("DB_PORT", 3306)),
-    'raise_on_warnings': True
-}
+# 🔑 Database configuration for both Railway and local development
+def get_db_config():
+    # Prioritize Railway's MySQL environment variables
+    if os.environ.get('MYSQLHOST'):
+        return {
+            'user': os.environ.get('MYSQLUSER', 'root'),
+            'password': os.environ.get('MYSQLPASSWORD', 'jWmVkiiGFuPlOxsvcSKmRZHeDrdHBmsX'),
+            'host': os.environ.get('MYSQLHOST', 'localhost'),
+            'database': os.environ.get('MYSQLDATABASE', 'pdtool'),
+            'port': int(os.environ.get('MYSQLPORT', 3306)),
+            'raise_on_warnings': True
+        }
+    else:
+        # Fallback to local development
+        return {
+            'user': os.environ.get("DB_USER", "root"),
+            'password': os.environ.get("DB_PASSWORD", "299QC]tT((cn/S.!"),
+            'host': os.environ.get("DB_HOST", "127.0.0.1"),
+            'database': os.environ.get("DB_NAME", "pdtool"),
+            'port': int(os.environ.get("DB_PORT", 3306)),
+            'raise_on_warnings': True
+        }
 
-# Database connection pool
-db_pool = mysql.connector.pooling.MySQLConnectionPool(
-    pool_name="pdtool_pool",
-    pool_size=5,
-    **config
-)
-
+# Database connection function (no connection pooling on Railway)
 def get_db_connection():
-    return db_pool.get_connection()
+    try:
+        config = get_db_config()
+        conn = mysql.connector.connect(**config)
+        return conn
+    except mysql.connector.Error as err:
+        logger.error(f"Database connection error: {err}")
+        raise
 
 def normalize_text(text):
     """Normalize text for comparison by lowercasing and removing special characters"""
@@ -235,7 +248,7 @@ def check_plagiarism_route():
         logger.info(f"Processing file of type: {file_type}")
 
         try:
-            # File reading logic (keep your existing code)
+            # File reading logic
             if file_type == 'docx':
                 docx_bytes = file.read()
                 with io.BytesIO(docx_bytes) as docx_io:
@@ -267,7 +280,7 @@ def check_plagiarism_route():
                 logger.warning("Document already exists in database.")
                 return jsonify({"error": "Document already exists"}), 409
 
-            # Insert new document (make sure your database schema matches)
+            # Insert new document
             cursor.execute(
                 "INSERT INTO documents (file_name, file_type, file_content) VALUES (%s, %s, %s)",
                 (file.filename, file_type, normalized_text)
@@ -335,5 +348,25 @@ def check_plagiarism_route():
         logger.error(f"Unexpected error: {str(e)}")
         return jsonify({"error": "Server error", "details": str(e)}), 500
 
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+# Health check endpoint for Railway
+@app.route('/health', methods=['GET'])
+def health_check():
+    try:
+        conn = get_db_connection()
+        conn.close()
+        return jsonify({"status": "healthy", "database": "connected"})
+    except Exception as e:
+        return jsonify({"status": "unhealthy", "database": "disconnected", "error": str(e)}), 500
+
+if __name__ == "__main__":
+    # Railway sets PORT env var (usually 8080). Locally we use 5000.
+    port = int(os.environ.get("PORT", 5000))
+
+    # Enable debug only if FLASK_DEBUG=true in .env
+    debug_mode = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
+
+    app.run(
+        debug=debug_mode,
+        host="0.0.0.0",
+        port=port
+    )
