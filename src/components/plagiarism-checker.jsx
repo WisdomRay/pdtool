@@ -11,10 +11,22 @@ import { HighlightedText } from "./highlighted-text"
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
-// Check if the environment variable is defined
+// Check if the environment variable is defined - ADD https:// PROTOCOL
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-console.log("API_URL:", API_URL); // Debug log
+// Add protocol if missing (safety check)
+const getApiUrl = () => {
+  let url = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  if (url && !url.startsWith('http')) {
+    url = `https://${url}`;
+  }
+  return url;
+}
+
+
+const API_URL_WITH_PROTOCOL = getApiUrl();
+
+console.log("API_URL:", API_URL_WITH_PROTOCOL); // Debug log
 
 export function PlagiarismChecker() {
   const [file, setFile] = useState(null)
@@ -46,7 +58,7 @@ export function PlagiarismChecker() {
       formData.append("file", file);
 
       // Use the properly constructed API URL
-      const apiUrl = `${API_URL}/check_plagiarism`;
+      const apiUrl = `${API_URL_WITH_PROTOCOL}/check_plagiarism`;
       console.log("Making request to:", apiUrl); // Debug log
 
       const response = await axios.post(apiUrl, formData, {
