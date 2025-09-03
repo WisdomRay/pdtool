@@ -82,14 +82,18 @@ logger.addHandler(handler)
 #         }
 
 def get_db_config():
-    print("Environment variables check:")  # Debug log
-    print("MYSQLHOST:", os.environ.get('MYSQLHOST'))
-    print("MYSQLUSER:", os.environ.get('MYSQLUSER'))
-    print("MYSQLDATABASE:", os.environ.get('MYSQLDATABASE'))
+    # Debug: Print all MySQL-related environment variables
+    print("Checking MySQL environment variables:")
+    for key in ['MYSQLHOST', 'MYSQLUSER', 'MYSQLPASSWORD', 'MYSQLDATABASE', 'MYSQLPORT']:
+        value = os.environ.get(key)
+        if value:
+            print(f"  {key}: {value}")
+        else:
+            print(f"  {key}: NOT SET")
     
-    # Prioritize Railway's MySQL environment variables
+    # Check if we have Railway MySQL config
     if os.environ.get('MYSQLHOST'):
-        print("Using Railway MySQL configuration")  # Debug log
+        print("Using Railway MySQL configuration")
         config = {
             'user': os.environ.get('MYSQLUSER'),
             'password': os.environ.get('MYSQLPASSWORD'),
@@ -98,11 +102,9 @@ def get_db_config():
             'port': int(os.environ.get('MYSQLPORT', 3306)),
             'raise_on_warnings': True
         }
-        print("Railway config:", {k: v for k, v in config.items() if k != 'password'})  # Debug log (hide password)
         return config
     else:
-        print("Using local development configuration")  # Debug log
-        # Fallback to local development
+        print("Falling back to local development configuration")
         return {
             'user': os.environ.get("DB_USER", "root"),
             'password': os.environ.get("DB_PASSWORD", "299QC]tT((cn/S.!"),
@@ -111,6 +113,17 @@ def get_db_config():
             'port': int(os.environ.get("DB_PORT", 3306)),
             'raise_on_warnings': True
         }
+@app.route('/test-db', methods=['GET'])
+def test_db():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1")
+        result = cursor.fetchone()
+        conn.close()
+        return jsonify({"status": "success", "result": result})
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
 
 # Database connection function (no connection pooling on Railway)
 def get_db_connection():
